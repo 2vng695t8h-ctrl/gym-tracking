@@ -126,6 +126,14 @@
 
                 <hr>
 
+                <div class="mb-3 d-flex gap-2">
+                    <button class="btn btn-success" onclick="exportData()">Exportar datos</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar datos</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+
+                <hr>
+
                 <button class="btn btn-danger" onclick="showClearDatabaseConfirm()">Eliminar Base de Datos</button>
             </div>
         </div>
