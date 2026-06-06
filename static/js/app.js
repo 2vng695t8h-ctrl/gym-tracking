@@ -432,6 +432,38 @@ function showClearDatabaseConfirm() {
     }
 }
 
+function exportData() {
+    const data = localStorage.getItem('gym_data') || '{}';
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gym-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            JSON.parse(e.target.result); // validar que es JSON válido
+            if (confirm('¿Importar datos? Esto reemplazará todos los datos actuales.')) {
+                localStorage.setItem('gym_data', e.target.result);
+                alert('Datos importados correctamente.');
+                window.location.reload();
+            }
+        } catch {
+            alert('Error: el archivo no es válido.');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
 function initializeDarkMode() {
     const isDarkMode = localStorage.getItem('darkMode') === 'true';
     const toggle = document.getElementById('darkModeToggle');
