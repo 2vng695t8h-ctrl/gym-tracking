@@ -434,13 +434,13 @@ function showClearDatabaseConfirm() {
 
 function exportData() {
     const data = localStorage.getItem('gym_data') || '{}';
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    const dataStr = 'data:application/json;charset=utf-8,' + encodeURIComponent(data);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `gym-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.setAttribute('href', dataStr);
+    a.setAttribute('download', `gym-backup-${new Date().toISOString().slice(0,10)}.json`);
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
 }
 
 function importData(event) {
