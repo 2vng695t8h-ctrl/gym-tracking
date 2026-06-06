@@ -1,0 +1,407 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: none;
+}
+
+.card-header {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.body-part-item {
+    cursor: pointer;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.body-part-item:hover {
+    background-color: #e9ecef;
+}
+
+.body-part-item.active {
+    background-color: #e7f3ff;
+    border-left-color: #0d6efd;
+}
+
+.muscle-item {
+    cursor: pointer;
+    padding: 8px 15px;
+    margin: 5px 0 5px 20px;
+    border-radius: 4px;
+    background-color: #f0f0f0;
+    transition: all 0.3s ease;
+    border-left: 2px solid transparent;
+}
+
+.muscle-item:hover {
+    background-color: #e0e0e0;
+}
+
+.muscle-item.active {
+    background-color: #fff3cd;
+    border-left-color: #ffc107;
+}
+
+.exercise-item {
+    padding: 8px 15px;
+    margin: 3px 0 3px 35px;
+    border-radius: 4px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exercise-item:hover {
+    background-color: #f9f9f9;
+    border-color: #0d6efd;
+}
+
+.exercise-item.active {
+    background-color: #d1ecf1;
+    border-color: #0c5460;
+}
+
+.btn-small-remove {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.record-row {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border-left: 3px solid #0d6efd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.record-info {
+    flex: 1;
+}
+
+.record-date {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.weight-badge {
+    background-color: #0d6efd;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.stat-card h6 {
+    opacity: 0.9;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.stat-card .value {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.input-row input {
+    flex: 1;
+}
+
+.input-row button {
+    min-width: 120px;
+}
+
+.nav-tabs .nav-link {
+    color: #666;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #0d6efd;
+    border-bottom-color: #0d6efd;
+}
+
+.training-item {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    background-color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+    color: #333;
+}
+
+.training-item:hover,
+.training-item-hover {
+    background-color: #e0e0e0;
+    border-color: #007bff;
+}
+
+body.dark-mode .training-item {
+    background-color: #333;
+    color: #fff;
+    border-color: transparent;
+}
+
+body.dark-mode .training-item:hover,
+body.dark-mode .training-item-hover {
+    background-color: #444;
+    border-color: #0d6efd;
+}
+
+.dark-mode .training-item {
+    background-color: #333;
+    color: #fff;
+    border-color: #444;
+}
+
+.dark-mode .training-item:hover {
+    background-color: #444;
+    border-color: #0d6efd;
+}
+
+.table-responsive {
+    border-radius: 5px;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    margin-right: 5px;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode {
+    background-color: #1a1a1a !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode * {
+    color: #fff !important;
+}
+
+body.dark-mode .navbar {
+    background-color: #222 !important;
+    border-bottom: 1px solid #333 !important;
+}
+
+body.dark-mode .card {
+    background-color: #2a2a2a !important;
+    border-color: #333 !important;
+    color: #fff !important;
+}
+
+body.dark-mode .card-header {
+    background-color: #333 !important;
+    color: #fff !important;
+    border-color: #444 !important;
+}
+
+body.dark-mode .card-body {
+    background-color: #2a2a2a !important;
+    color: #fff !important;
+}
+
+body.dark-mode .bg-dark {
+    background-color: #333 !important;
+}
+
+/* Trainings List */
+#trainingsList {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.dark-mode .table {
+    color: #fff;
+    border-color: #333;
+    background-color: #2a2a2a;
+}
+
+.dark-mode .table-dark {
+    background-color: #1a1a1a;
+    border-color: #333;
+    color: #fff;
+}
+
+.dark-mode .table-dark th {
+    background-color: #1a1a1a !important;
+    color: #fff !important;
+    border-color: #333;
+}
+
+.dark-mode .table thead th {
+    background-color: #1a1a1a !important;
+    color: #fff !important;
+    border-color: #333;
+}
+
+.dark-mode .table tbody tr {
+    border-color: #333;
+    background-color: #2a2a2a;
+    color: #fff;
+}
+
+.dark-mode .table tbody tr:hover {
+    background-color: #333 !important;
+    color: #fff;
+}
+
+.dark-mode .table td {
+    border-color: #333;
+    background-color: #2a2a2a;
+    color: #fff;
+}
+
+.dark-mode .form-control,
+.dark-mode .form-select {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+.dark-mode .form-control:focus,
+.dark-mode .form-select:focus {
+    background-color: #333;
+    color: #e0e0e0;
+    border-color: #666;
+}
+
+.dark-mode input::placeholder {
+    color: #ccc !important;
+    opacity: 1 !important;
+}
+
+.dark-mode .form-control::placeholder {
+    color: #ccc !important;
+    opacity: 1 !important;
+}
+
+.dark-mode input[type="number"]::placeholder {
+    color: #ccc !important;
+    opacity: 1 !important;
+}
+
+.dark-mode input[type="text"]::placeholder {
+    color: #ccc !important;
+    opacity: 1 !important;
+}
+
+.dark-mode textarea::placeholder {
+    color: #ccc !important;
+    opacity: 1 !important;
+}
+
+.dark-mode .form-label {
+    color: #e0e0e0 !important;
+}
+
+.dark-mode input[type="text"],
+.dark-mode input[type="number"],
+.dark-mode textarea {
+    color: #e0e0e0 !important;
+    background-color: #2a2a2a !important;
+    border-color: #444 !important;
+}
+
+.dark-mode .nav-tabs {
+    border-color: #333;
+    background-color: #222;
+}
+
+.dark-mode .nav-link {
+    color: #999;
+    background-color: #1a1a1a;
+    border: none;
+}
+
+.dark-mode .nav-link.active {
+    color: #e0e0e0;
+    background-color: #2a2a2a !important;
+    border-color: #0d6efd !important;
+    border-bottom: 2px solid #0d6efd !important;
+}
+
+.dark-mode .modal-content {
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+.dark-mode .modal-header {
+    background-color: #333;
+    border-color: #444;
+}
+
+.dark-mode .modal-footer {
+    border-color: #444;
+}
+
+.dark-mode .alert {
+    background-color: #333;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+.dark-mode .text-muted {
+    color: #999 !important;
+}
+
+.dark-mode .record-row {
+    background-color: #333;
+    border-color: #444;
+}
+
+.dark-mode .stat-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.dark-mode input[type="checkbox"] {
+    background-color: #333;
+    border-color: #444;
+}
