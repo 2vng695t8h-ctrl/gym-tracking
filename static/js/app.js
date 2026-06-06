@@ -435,14 +435,20 @@ function showClearDatabaseConfirm() {
 function exportData() {
     const data = localStorage.getItem('gym_data') || '{}';
     const pretty = JSON.stringify(JSON.parse(data), null, 2);
-    const win = window.open('', '_blank');
-    win.document.write(`
-        <html><head><title>gym-backup-${new Date().toISOString().slice(0,10)}</title></head>
-        <body style="margin:0">
-        <textarea style="width:100%;height:100vh;font-family:monospace;font-size:12px;border:none;padding:10px;box-sizing:border-box">${pretty}</textarea>
-        </body></html>
-    `);
-    win.document.close();
+    document.getElementById('exportText').value = pretty;
+    new bootstrap.Modal(document.getElementById('exportModal')).show();
+}
+
+function copyExportData() {
+    const textarea = document.getElementById('exportText');
+    textarea.select();
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        alert('Datos copiados al portapapeles.');
+    }).catch(() => {
+        textarea.select();
+        document.execCommand('copy');
+        alert('Datos copiados al portapapeles.');
+    });
 }
 
 function importData(event) {
