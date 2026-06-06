@@ -435,8 +435,17 @@ function showClearDatabaseConfirm() {
 function exportData() {
     const data = localStorage.getItem('gym_data') || '{}';
     const pretty = JSON.stringify(JSON.parse(data), null, 2);
-    document.getElementById('exportText').value = pretty;
-    new bootstrap.Modal(document.getElementById('exportModal')).show();
+    const blob = new Blob([pretty], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gym-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
 }
 
 function copyExportData() {
