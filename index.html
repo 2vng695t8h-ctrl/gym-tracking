@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,58 +15,61 @@
 <body>
     <nav class="navbar navbar-dark bg-dark">
         <div class="container">
-            <span class="navbar-brand mb-0 h1">💪 Gym Tracking</span>
+            <span class="navbar-brand mb-0 h1">Gym Tracking</span>
         </div>
     </nav>
 
     <div class="container mt-4">
         <ul class="nav nav-tabs mb-4" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="trainings-tab" data-bs-toggle="tab" data-bs-target="#trainings" type="button" role="tab">Entrenamientos</button>
+                <button class="nav-link active" id="trainings-tab" data-bs-toggle="tab" data-bs-target="#trainings" type="button" role="tab">Trainings</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">Biblioteca</button>
+                <button class="nav-link" id="library-tab" data-bs-toggle="tab" data-bs-target="#library" type="button" role="tab">Library</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">⚙️ Configuración</button>
+                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">History</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab">Settings</button>
             </li>
         </ul>
 
         <div class="tab-content">
-            <!-- Entrenamientos Tab -->
+            <!-- Trainings Tab -->
             <div class="tab-pane fade show active" id="trainings" role="tabpanel">
                 <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addBodyPartModal">
-                    + Agregar Entrenamiento
+                    + Add Training
                 </button>
 
                 <div class="row">
                     <div class="col-md-3">
-                        <h5 class="mb-3">Mis Entrenamientos</h5>
+                        <h5 class="mb-3">My Trainings</h5>
                         <div id="trainingsList">
-                            <p class="text-muted">Sin entrenamientos</p>
+                            <p class="text-muted">No trainings</p>
                         </div>
                     </div>
 
                     <div class="col-md-9">
                         <div id="trainingDetailContainer" style="display: none;">
                             <button class="btn btn-primary mb-3" onclick="showAddMuscleToTrainingModal()">
-                                + Agregar Ejercicio
+                                + Add Exercise
                             </button>
 
                             <div class="table-responsive">
                                 <table class="table table-hover table-sm">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th>Ejercicio</th>
-                                            <th>Músculo</th>
-                                            <th>Registros</th>
-                                            <th>Peso Máx</th>
-                                            <th style="width: 100px;">Acciones</th>
+                                            <th>Exercise</th>
+                                            <th>Muscle</th>
+                                            <th>Records</th>
+                                            <th>Max Weight</th>
+                                            <th style="width: 100px;">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody id="trainingTable">
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">Sin ejercicios</td>
+                                            <td colspan="5" class="text-center text-muted">No exercises</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -74,67 +77,75 @@
                         </div>
 
                         <div id="noTrainingSelected" class="alert alert-info">
-                            👈 Selecciona un entrenamiento del menú para comenzar.
+                            Select a training from the menu to start.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Biblioteca Tab -->
+            <!-- History Tab -->
+            <div class="tab-pane fade" id="history" role="tabpanel">
+                <div class="mb-3">
+                    <button class="btn btn-primary" onclick="saveSession()">Save current session</button>
+                </div>
+                <div id="sessionsContainer"></div>
+            </div>
+
+            <!-- Library Tab -->
             <div class="tab-pane fade" id="library" role="tabpanel">
                 <div class="mb-3 d-flex gap-2">
                     <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#addExerciseWithMuscleModal">
-                        <strong>+</strong> Agregar Ejercicio
+                        <strong>+</strong> Add Exercise
                     </button>
-                    <input type="text" id="librarySearch" class="form-control" placeholder="🔍 Buscar ejercicio o músculo...">
+                    <input type="text" id="librarySearch" class="form-control" placeholder="Search exercise or muscle...">
                 </div>
 
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th style="cursor: pointer;" onclick="sortLibraryBy('exercise')">Ejercicio <span id="sort-exercise"></span></th>
-                                <th style="cursor: pointer;" onclick="sortLibraryBy('muscle')">Músculo <span id="sort-muscle"></span></th>
-                                <th style="cursor: pointer;" onclick="sortLibraryBy('training')">Entrenamientos <span id="sort-training"></span></th>
-                                <th style="cursor: pointer;" onclick="sortLibraryBy('records')">Registros <span id="sort-records"></span></th>
-                                <th style="cursor: pointer;" onclick="sortLibraryBy('weight')">Peso Máx <span id="sort-weight"></span></th>
-                                <th>Acciones</th>
+                                <th style="cursor: pointer;" onclick="sortLibraryBy('exercise')">Exercise <span id="sort-exercise"></span></th>
+                                <th style="cursor: pointer;" onclick="sortLibraryBy('muscle')">Muscle <span id="sort-muscle"></span></th>
+                                <th style="cursor: pointer;" onclick="sortLibraryBy('training')">Trainings <span id="sort-training"></span></th>
+                                <th style="cursor: pointer;" onclick="sortLibraryBy('records')">Records <span id="sort-records"></span></th>
+                                <th style="cursor: pointer;" onclick="sortLibraryBy('weight')">Max Weight <span id="sort-weight"></span></th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="libraryTable">
                             <tr>
-                                <td colspan="6" class="text-center text-muted">Sin ejercicios</td>
+                                <td colspan="6" class="text-center text-muted">No exercises</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Configuración Tab -->
+            <!-- Settings Tab -->
             <div class="tab-pane fade" id="settings" role="tabpanel">
                 <div class="mb-4">
-                    <h5>Configuración</h5>
-                    <p class="text-muted">Opciones de la aplicación</p>
+                    <h5>Settings</h5>
+                    <p class="text-muted">Application options</p>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label d-flex align-items-center gap-2">
                         <input type="checkbox" id="darkModeToggle" class="form-check-input" onchange="toggleDarkMode()">
-                        Tema Oscuro
+                        Dark Mode
                     </label>
                 </div>
 
                 <hr>
 
                 <div class="mb-3 d-flex gap-2">
-                    <button class="btn btn-success" onclick="exportData()">Exportar datos</button>
-                    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Importar datos</button>
+                    <button class="btn btn-success" onclick="exportData()">Export data</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">Import data</button>
                     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
                 </div>
 
                 <hr>
 
-                <button class="btn btn-danger" onclick="showClearDatabaseConfirm()">Eliminar Base de Datos</button>
+                <button class="btn btn-danger" onclick="showClearDatabaseConfirm()">Clear Database</button>
             </div>
         </div>
     </div>
@@ -144,15 +155,15 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agregar Entrenamiento</h5>
+                    <h5 class="modal-title">Add Training</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="text" id="bodyPartName" class="form-control" placeholder="Ej: Upper Body, Lower Body">
+                    <input type="text" id="bodyPartName" class="form-control" placeholder="E.g.: Upper Body, Lower Body">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="addBodyPart()">Agregar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addBodyPart()">Add</button>
                 </div>
             </div>
         </div>
@@ -162,15 +173,15 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar Entrenamiento</h5>
+                    <h5 class="modal-title">Edit Training</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="text" id="editBodyPartName" class="form-control" placeholder="Nombre del entrenamiento">
+                    <input type="text" id="editBodyPartName" class="form-control" placeholder="Training name">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="saveBodyPartName()">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveBodyPartName()">Save</button>
                 </div>
             </div>
         </div>
@@ -180,27 +191,27 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="trainingModalTitle">Agregar Ejercicio</h5>
+                    <h5 class="modal-title" id="trainingModalTitle">Add Exercise</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div id="step-muscle" style="display: block;">
-                        <label class="form-label">Selecciona un músculo:</label>
+                        <label class="form-label">Select a muscle:</label>
                         <select id="muscleSelectTraining" class="form-control">
-                            <option value="">Selecciona un músculo...</option>
+                            <option value="">Select a muscle...</option>
                         </select>
                     </div>
                     <div id="step-exercise" style="display: none;">
-                        <label class="form-label">Selecciona un ejercicio:</label>
+                        <label class="form-label">Select an exercise:</label>
                         <select id="exerciseSelectTraining" class="form-control">
-                            <option value="">Selecciona un ejercicio...</option>
+                            <option value="">Select an exercise...</option>
                         </select>
-                        <button class="btn btn-link mt-2" onclick="goBackToMuscleSelection()">← Volver a seleccionar músculo</button>
+                        <button class="btn btn-link mt-2" onclick="goBackToMuscleSelection()">← Back to muscle selection</button>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="addExerciseToTrainingConfirm()">Agregar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addExerciseToTrainingConfirm()">Add</button>
                 </div>
             </div>
         </div>
@@ -210,20 +221,20 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exerciseStatsTitle">Estadísticas del Ejercicio</h5>
+                    <h5 class="modal-title" id="exerciseStatsTitle">Exercise Statistics</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row mb-4">
                         <div class="col-md-6">
                             <div class="stat-card">
-                                <h6>Peso Máximo</h6>
+                                <h6>Max Weight</h6>
                                 <div class="value" id="statsMaxWeight">0 kg</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="stat-card">
-                                <h6>Total de Registros</h6>
+                                <h6>Total Records</h6>
                                 <div class="value" id="statsRecordCount">0</div>
                             </div>
                         </div>
@@ -233,37 +244,13 @@
                         <canvas id="statsChart"></canvas>
                     </div>
 
-                    <div class="card mt-4">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0">Agregar Registro</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-2">
-                                <div class="col-md-3">
-                                    <input type="number" id="recordWeight" class="form-control" placeholder="Peso (kg)" min="0" step="0.5">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" id="recordReps" class="form-control" placeholder="Reps" min="1">
-                                </div>
-                                <div class="col-md-3">
-                                    <input type="number" id="recordSets" class="form-control" placeholder="Series" min="1">
-                                </div>
-                                <div class="col-md-3">
-                                    <button class="btn btn-primary w-100" onclick="addRecord()">Agregar</button>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <input type="text" id="recordNotes" class="form-control form-control-sm" placeholder="Notas (opcional)">
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="card mt-3">
                         <div class="card-header">
-                            <h6 class="mb-0">Historial</h6>
+                            <h6 class="mb-0">History</h6>
                         </div>
                         <div class="card-body" id="statsHistorial" style="max-height: 300px; overflow-y: auto;">
-                            <p class="text-muted">Sin registros</p>
+                            <p class="text-muted">No records</p>
                         </div>
                     </div>
                 </div>
@@ -275,42 +262,42 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Agregar Ejercicio</h5>
+                    <h5 class="modal-title">Add Exercise</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Nombre del Ejercicio</label>
-                        <input type="text" id="exerciseNameInput" class="form-control" placeholder="Ej: Bench Press, Sentadillas">
+                        <label class="form-label">Exercise Name</label>
+                        <input type="text" id="exerciseNameInput" class="form-control" placeholder="E.g.: Bench Press, Squats">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Músculo</label>
-                        <input type="text" id="muscleNameInput" class="form-control" placeholder="Ej: Pecho, Espalda, Piernas">
+                        <label class="form-label">Muscle</label>
+                        <input type="text" id="muscleNameInput" class="form-control" placeholder="E.g.: Chest, Back, Legs">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" onclick="addExerciseWithMuscle()">Agregar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addExerciseWithMuscle()">Add</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Exportar -->
+    <!-- Export Modal -->
     <div class="modal fade" id="exportModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Exportar datos</h5>
+                    <h5 class="modal-title">Export data</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted">Copia este texto y guárdalo en un archivo .json como backup.</p>
+                    <p class="text-muted">Copy this text and save it in a .json file as backup.</p>
                     <textarea id="exportText" class="form-control" rows="10" readonly style="font-family: monospace; font-size: 12px;"></textarea>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" onclick="copyExportData()">Copiar todo</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="copyExportData()">Copy all</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

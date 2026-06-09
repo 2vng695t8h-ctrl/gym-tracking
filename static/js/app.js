@@ -1,11 +1,32 @@
 let currentTrainingId = null;
 let libraryData = [];
 let librarySort = { column: null, direction: 'asc' };
+let activeModal = null;
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+function closeAllModals() {
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(m => {
+        const instance = bootstrap.Modal.getInstance(m);
+        if (instance) instance.hide();
+    });
+    activeModal = null;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeDarkMode();
     loadBodyParts();
     loadLibrary();
+    loadSessions();
 
     const searchInput = document.getElementById('librarySearch');
     if (searchInput) {
@@ -14,12 +35,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    document.getElementById('trainings-tab').addEventListener('click', function() {
+    const trainingsTab = document.getElementById('trainings-tab');
+    if (trainingsTab) trainingsTab.addEventListener('click', function() {
         loadBodyParts();
     });
 
-    document.getElementById('library-tab').addEventListener('click', function() {
+    const libraryTab = document.getElementById('library-tab');
+    if (libraryTab) libraryTab.addEventListener('click', function() {
         setTimeout(() => loadLibrary(), 100);
+    });
+
+    const historyTab = document.getElementById('history-tab');
+    if (historyTab) historyTab.addEventListener('click', function() {
+        setTimeout(() => loadSessions(), 100);
     });
 });
 
@@ -31,7 +59,7 @@ function loadBodyParts() {
     container.innerHTML = '';
 
     if (trainings.length === 0) {
-        container.innerHTML = '<p class="text-muted text-center">Sin entrenamientos</p>';
+        container.innerHTML = '<p class="text-muted text-center">No trainings</p>';
         return;
     }
 
@@ -64,7 +92,7 @@ function loadTrainingExercises(trainingId) {
     tbody.innerHTML = '';
 
     if (exercises.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Sin ejercicios. Agrega un músculo para comenzar.</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No exercises. Add a muscle to start.</td></tr>';
         return;
     }
 
@@ -83,14 +111,14 @@ function loadTrainingExercises(trainingId) {
 
 function addBodyPart() {
     const name = document.getElementById('bodyPartName').value.trim();
-    if (!name) { alert('Por favor ingresa un nombre'); return; }
+    if (!name) { alert('Please enter a name'); return; }
 
     const result = DB.createBodyPart(name);
-    if (!result) { alert('Error: Este entrenamiento ya existe'); return; }
+    if (!result) { alert('Error: This training already exists'); return; }
 
     document.getElementById('bodyPartName').value = '';
-    bootstrap.Modal.getInstance(document.getElementById('addBodyPartModal')).hide();
-    loadBodyParts();
+    closeAllModals();
+    setTimeout(() => loadBodyParts(), 100);
 }
 
 function showEditBodyPartModal(event, bodyPartId, bodyPartName) {
@@ -103,27 +131,27 @@ function showEditBodyPartModal(event, bodyPartId, bodyPartName) {
 
 function saveBodyPartName() {
     const newName = document.getElementById('editBodyPartName').value.trim();
-    if (!newName) { alert('Por favor ingresa un nombre'); return; }
+    if (!newName) { alert('Please enter a name'); return; }
 
     DB.updateBodyPart(window.editingBodyPartId, newName);
-    bootstrap.Modal.getInstance(document.getElementById('editBodyPartModal')).hide();
-    loadBodyParts();
+    closeAllModals();
+    setTimeout(() => loadBodyParts(), 100);
 }
 
 function deleteBodyPart(id) {
-    if (confirm('¿Eliminar este entrenamiento?')) {
+    if (confirm('Delete this training?')) {
         DB.deleteBodyPart(id);
         currentTrainingId = null;
         document.getElementById('trainingDetailContainer').style.display = 'none';
         document.getElementById('noTrainingSelected').style.display = 'block';
-        loadBodyParts();
+        setTimeout(() => loadBodyParts(), 100);
     }
 }
 
 function showAddMuscleToTrainingModal() {
     const muscles = DB.getMuscles();
     const muscleSelect = document.getElementById('muscleSelectTraining');
-    muscleSelect.innerHTML = '<option value="">Selecciona un músculo...</option>';
+    muscleSelect.innerHTML = '<option value="">Select a muscle...</option>';
 
     muscles.forEach(muscle => {
         const option = document.createElement('option');
@@ -132,11 +160,13 @@ function showAddMuscleToTrainingModal() {
         muscleSelect.appendChild(option);
     });
 
-    muscleSelect.onchange = function() {
+    muscleSelect.removeEventListener('change', window.muscleSelectHandler);
+    window.muscleSelectHandler = function() {
         if (this.value) {
             goToExerciseSelection(parseInt(this.value), this.options[this.selectedIndex].text);
         }
     };
+    muscleSelect.addEventListener('change', window.muscleSelectHandler);
 
     document.getElementById('step-muscle').style.display = 'block';
     document.getElementById('step-exercise').style.display = 'none';
@@ -179,18 +209,18 @@ function goBackToMuscleSelection() {
 
 function addExerciseToTrainingConfirm() {
     const exerciseId = parseInt(document.getElementById('exerciseSelectTraining').value);
-    if (!exerciseId) { alert('Por favor selecciona un ejercicio'); return; }
-    if (!currentTrainingId || !window.selectedMuscleInTraining) { alert('Error: selecciona un entrenamiento y un músculo primero'); return; }
+    if (!exerciseId) { alert('Please select an exercise'); return; }
+    if (!currentTrainingId || !window.selectedMuscleInTraining) { alert('Error: select a training and muscle first'); return; }
 
     DB.addExerciseToTraining(currentTrainingId, window.selectedMuscleInTraining.id, exerciseId);
-    bootstrap.Modal.getInstance(document.getElementById('addExerciseToTrainingModal')).hide();
-    loadTrainingExercises(currentTrainingId);
+    closeAllModals();
+    setTimeout(() => loadTrainingExercises(currentTrainingId), 100);
 }
 
 function removeExerciseFromTraining(trainingId, muscleId, exerciseId) {
-    if (confirm('¿Quitar este ejercicio?')) {
+    if (confirm('Remove this exercise?')) {
         DB.removeExerciseFromTraining(trainingId, muscleId, exerciseId);
-        loadTrainingExercises(trainingId);
+        setTimeout(() => loadTrainingExercises(trainingId), 100);
     }
 }
 
@@ -257,7 +287,7 @@ function renderLibraryTable(data) {
     tbody.innerHTML = '';
 
     if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No hay resultados</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No results</td></tr>';
         return;
     }
 
@@ -275,40 +305,100 @@ function renderLibraryTable(data) {
     });
 }
 
+function getSessionRecords(exerciseId) {
+    const sessions = DB.getSessions();
+    const records = [];
+
+    sessions.forEach(session => {
+        if (session.exercises) {
+            session.exercises.forEach(ex => {
+                if (ex.exercise_id === exerciseId) {
+                    if (ex.series && ex.series.length > 0) {
+                        ex.series.forEach((serie, idx) => {
+                            if (serie.weight > 0 || serie.reps > 0) {
+                                records.push({
+                                    id: `${session.id}-${ex.exercise_id}-${idx}`,
+                                    exercise_id: exerciseId,
+                                    weight: serie.weight,
+                                    reps: serie.reps,
+                                    sets: 1,
+                                    date: session.date,
+                                    notes: ''
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    return records.sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
 function showExerciseStats(exerciseId) {
     window.currentExerciseId = exerciseId;
 
-    const records = DB.getRecords(exerciseId);
+    const records = getSessionRecords(exerciseId);
     const exerciseData = libraryData.find(row => row.exerciseId === exerciseId);
 
     let exerciseName = exerciseData ? exerciseData.exerciseName : 'Ejercicio';
-    let maxWeight = records.length ? Math.max(...records.map(r => r.weight)) : 0;
+    let totalVolume = records.reduce((sum, r) => sum + (r.weight * r.reps * r.sets), 0);
 
     if (!exerciseData) {
         const exercises = DB.getExercises();
         const ex = exercises.find(e => e.id === exerciseId);
-        if (ex) { exerciseName = ex.name; maxWeight = ex.max_weight; }
+        if (ex) { exerciseName = ex.name; }
     }
 
     document.getElementById('exerciseStatsTitle').textContent = exerciseName;
-    document.getElementById('statsMaxWeight').textContent = maxWeight + ' kg';
+    document.getElementById('statsMaxWeight').textContent = Math.round(totalVolume) + ' kg (vol)';
     document.getElementById('statsRecordCount').textContent = records.length;
 
-    const historialHtml = records.length > 0
-        ? records.slice().reverse().map(r => {
-            const volume = (r.weight * r.reps * r.sets).toFixed(0);
+    // Group records by date and collect series
+    const volumeByDate = {};
+    records.forEach(r => {
+        const dateKey = formatDate(r.date);
+        if (!volumeByDate[dateKey]) {
+            volumeByDate[dateKey] = { date: r.date, volume: 0, maxWeight: 0, series: [] };
+        }
+        const serieVolume = r.weight * r.reps * r.sets;
+        volumeByDate[dateKey].volume += serieVolume;
+        volumeByDate[dateKey].maxWeight = Math.max(volumeByDate[dateKey].maxWeight, r.weight);
+        volumeByDate[dateKey].series.push(serieVolume);
+    });
+
+    const byDate = Object.values(volumeByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Filter to show only when volume or max weight changed
+    const filtered = [];
+    let lastVolume = null;
+    let lastMaxWeight = null;
+
+    byDate.forEach(d => {
+        if (lastVolume === null || d.volume !== lastVolume || d.maxWeight !== lastMaxWeight) {
+            filtered.push(d);
+            lastVolume = d.volume;
+            lastMaxWeight = d.maxWeight;
+        }
+    });
+
+    // Reverse for display (newest first)
+    filtered.reverse();
+
+    const historialHtml = filtered.length > 0
+        ? filtered.map(d => {
+            const seriesStr = d.series.map(v => Math.round(v)).join(' + ');
             return `
                 <div class="record-row">
                     <div class="record-info">
-                        <div><strong>${r.weight} kg</strong> × ${r.reps} reps × ${r.sets} series | Vol: ${volume} kg</div>
-                        <div class="record-date">${new Date(r.date).toLocaleDateString('es-ES')} ${new Date(r.date).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})}</div>
-                        ${r.notes ? `<div class="text-muted"><small>${r.notes}</small></div>` : ''}
+                        <div><strong>${Math.round(d.volume)} kg</strong> (${seriesStr}) | Max Weight: ${d.maxWeight}kg</div>
+                        <div class="record-date">${formatDate(d.date)}</div>
                     </div>
-                    <button class="btn btn-sm btn-danger" onclick="deleteRecord(${r.id})">×</button>
                 </div>
             `;
         }).join('')
-        : '<p class="text-muted">Sin registros</p>';
+        : '<p class="text-muted">No records</p>';
 
     document.getElementById('statsHistorial').innerHTML = historialHtml;
 
@@ -324,50 +414,50 @@ function showExerciseStats(exerciseId) {
     modal.show();
 }
 
-function addRecord() {
-    const weight = document.getElementById('recordWeight').value;
-    const reps = document.getElementById('recordReps').value;
-    const sets = document.getElementById('recordSets').value;
-    const notes = document.getElementById('recordNotes').value;
 
-    if (!weight || !reps || !sets) { alert('Por favor completa peso, reps y series'); return; }
-
-    DB.addRecord({
-        exercise_id: window.currentExerciseId,
-        weight: parseFloat(weight),
-        reps: parseInt(reps),
-        sets: parseInt(sets),
-        notes
-    });
-
-    document.getElementById('recordWeight').value = '';
-    document.getElementById('recordReps').value = '';
-    document.getElementById('recordSets').value = '';
-    document.getElementById('recordNotes').value = '';
-
-    showExerciseStats(window.currentExerciseId);
-}
-
-function deleteRecord(recordId) {
-    if (confirm('¿Eliminar este registro?')) {
-        DB.deleteRecord(recordId);
-        showExerciseStats(window.currentExerciseId);
-    }
-}
 
 function drawStatsChart(records) {
     const sorted = [...records].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const ctx = document.getElementById('statsChart').getContext('2d');
+    const ctx = document.getElementById('statsChart');
+    if (!ctx) return;
 
     if (window.statsChartInstance) window.statsChartInstance.destroy();
+
+    // Group by date and sum volume for each day
+    const volumeByDate = {};
+    sorted.forEach(r => {
+        const dateKey = formatDate(r.date);
+        if (!volumeByDate[dateKey]) {
+            volumeByDate[dateKey] = { date: r.date, volume: 0 };
+        }
+        volumeByDate[dateKey].volume += r.weight * r.reps * r.sets;
+    });
+
+    // Convert to array and sort
+    const byDate = Object.values(volumeByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Filter to show only when total volume changed
+    const filtered = [];
+    let lastVolume = null;
+
+    byDate.forEach(d => {
+        if (lastVolume === null || d.volume !== lastVolume) {
+            filtered.push(d);
+            lastVolume = d.volume;
+        }
+    });
+
+    const isMobile = window.innerWidth < 768;
+    const pointRadius = isMobile ? 3 : 5;
+    const pointHoverRadius = isMobile ? 5 : 7;
 
     window.statsChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: sorted.map(r => new Date(r.date).toLocaleDateString('es-ES')),
+            labels: filtered.map(d => formatDate(d.date)),
             datasets: [{
-                label: 'Peso (kg)',
-                data: sorted.map(r => r.weight),
+                label: 'Volumen Total (kg)',
+                data: filtered.map(d => Math.round(d.volume)),
                 borderColor: '#0d6efd',
                 backgroundColor: 'rgba(13, 110, 253, 0.1)',
                 tension: 0.3,
@@ -375,14 +465,14 @@ function drawStatsChart(records) {
                 pointBackgroundColor: '#0d6efd',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7
+                pointRadius,
+                pointHoverRadius
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: true, position: 'top' } },
+            plugins: { legend: { display: !isMobile, position: 'top' } },
             scales: { y: { beginAtZero: false } }
         }
     });
@@ -392,41 +482,42 @@ function addExerciseWithMuscle() {
     const exerciseName = document.getElementById('exerciseNameInput').value.trim();
     const muscleName = document.getElementById('muscleNameInput').value.trim();
 
-    if (!exerciseName || !muscleName) { alert('Por favor completa ambos campos'); return; }
+    if (!exerciseName || !muscleName) { alert('Please fill all fields'); return; }
 
     const muscle = DB.createMuscle(muscleName.charAt(0).toUpperCase() + muscleName.slice(1).toLowerCase());
     const exercise = DB.createExercise(exerciseName);
 
-    if (!exercise) { alert('Error: Este ejercicio ya existe'); return; }
+    if (!exercise) { alert('Error: This exercise already exists'); return; }
 
     DB.addExerciseToMuscle(muscle.id, exercise.id);
 
     document.getElementById('exerciseNameInput').value = '';
     document.getElementById('muscleNameInput').value = '';
-    bootstrap.Modal.getInstance(document.getElementById('addExerciseWithMuscleModal')).hide();
-
-    loadLibrary();
+    closeAllModals();
+    setTimeout(() => loadLibrary(), 100);
 }
 
 function deleteExerciseLibrary(exerciseId) {
-    if (confirm('¿Eliminar este ejercicio?')) {
+    if (confirm('Delete this exercise?')) {
         DB.deleteExercise(exerciseId);
-        loadLibrary();
-        loadBodyParts();
+        setTimeout(() => {
+            loadLibrary();
+            loadBodyParts();
+        }, 100);
     }
 }
 
 // ============ CONFIGURACIÓN ============
 
 function showClearDatabaseConfirm() {
-    if (confirm('⚠️ ADVERTENCIA: Esto eliminará TODA la base de datos. ¿Estás seguro?')) {
-        if (confirm('Última oportunidad. ¿Confirmas que quieres borrar todo?')) {
-            const userInput = prompt('Escribe ELIMINAR para confirmar:');
-            if (userInput === 'ELIMINAR') {
+    if (confirm('WARNING: This will delete ALL database. Are you sure?')) {
+        if (confirm('Last chance. Do you confirm you want to delete everything?')) {
+            const userInput = prompt('Type DELETE to confirm:');
+            if (userInput === 'DELETE') {
                 DB.clearAll();
                 window.location.reload();
             } else {
-                alert('Operación cancelada.');
+                alert('Operation canceled.');
             }
         }
     }
@@ -452,11 +543,11 @@ function copyExportData() {
     const textarea = document.getElementById('exportText');
     textarea.select();
     navigator.clipboard.writeText(textarea.value).then(() => {
-        alert('Datos copiados al portapapeles.');
+        alert('Data copied to clipboard.');
     }).catch(() => {
         textarea.select();
         document.execCommand('copy');
-        alert('Datos copiados al portapapeles.');
+        alert('Data copied to clipboard.');
     });
 }
 
@@ -467,18 +558,386 @@ function importData(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            JSON.parse(e.target.result); // validar que es JSON válido
-            if (confirm('¿Importar datos? Esto reemplazará todos los datos actuales.')) {
+            JSON.parse(e.target.result);
+            if (confirm('Import data? This will replace all current data.')) {
                 localStorage.setItem('gym_data', e.target.result);
-                alert('Datos importados correctamente.');
+                alert('Data imported successfully.');
                 window.location.reload();
             }
         } catch {
-            alert('Error: el archivo no es válido.');
+            alert('Error: the file is not valid.');
         }
     };
     reader.readAsText(file);
     event.target.value = '';
+}
+
+// ============ HISTORIAL DE SESIONES ============
+
+function loadSessions() {
+    const sessions = DB.getSessions();
+    const container = document.getElementById('sessionsContainer');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (sessions.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No sessions recorded</div>';
+        return;
+    }
+
+    // Group sessions by month
+    const sessionsByMonth = {};
+    sessions.forEach(session => {
+        const date = new Date(session.date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!sessionsByMonth[monthKey]) {
+            sessionsByMonth[monthKey] = [];
+        }
+        sessionsByMonth[monthKey].push(session);
+    });
+
+    const months = Object.keys(sessionsByMonth).sort().reverse();
+    const currentMonthIndex = window.currentSessionMonthIndex !== undefined ? window.currentSessionMonthIndex : 0;
+    const currentMonth = months[currentMonthIndex];
+    window.currentSessionMonthIndex = currentMonthIndex;
+
+    // Create month navigator
+    const [year, monthNum] = currentMonth.split('-');
+    const monthName = new Date(year, parseInt(monthNum) - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+    const navHtml = `<div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; justify-content: center;">
+        <button class="btn btn-sm btn-outline-primary" onclick="previousSessionMonth()" ${currentMonthIndex === months.length - 1 ? 'disabled' : ''}>← Previous</button>
+        <div style="min-width: 150px; text-align: center; font-weight: 500;">${monthName}</div>
+        <button class="btn btn-sm btn-outline-primary" onclick="nextSessionMonth()" ${currentMonthIndex === 0 ? 'disabled' : ''}>Next →</button>
+    </div>`;
+
+    container.innerHTML = navHtml;
+
+    const sessionsDiv = document.createElement('div');
+    sessionsDiv.id = 'sessions-list';
+    container.appendChild(sessionsDiv);
+
+    renderSessionsForMonth(currentMonth);
+}
+
+function nextSessionMonth() {
+    const sessions = DB.getSessions();
+    const sessionsByMonth = {};
+    sessions.forEach(session => {
+        const date = new Date(session.date);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!sessionsByMonth[key]) sessionsByMonth[key] = [];
+        sessionsByMonth[key].push(session);
+    });
+
+    const months = Object.keys(sessionsByMonth).sort().reverse();
+    const currentIndex = window.currentSessionMonthIndex || 0;
+    if (currentIndex > 0) {
+        window.currentSessionMonthIndex = currentIndex - 1;
+        loadSessions();
+    }
+}
+
+function previousSessionMonth() {
+    const sessions = DB.getSessions();
+    const sessionsByMonth = {};
+    sessions.forEach(session => {
+        const date = new Date(session.date);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!sessionsByMonth[key]) sessionsByMonth[key] = [];
+        sessionsByMonth[key].push(session);
+    });
+
+    const months = Object.keys(sessionsByMonth).sort().reverse();
+    const currentIndex = window.currentSessionMonthIndex || 0;
+    if (currentIndex < months.length - 1) {
+        window.currentSessionMonthIndex = currentIndex + 1;
+        loadSessions();
+    }
+}
+
+function renderSessionsForMonth(monthKey) {
+    const sessions = DB.getSessions();
+    const container = document.getElementById('sessions-list');
+    container.innerHTML = '';
+
+    const sessionsByMonth = {};
+    sessions.forEach(session => {
+        const date = new Date(session.date);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        if (!sessionsByMonth[key]) {
+            sessionsByMonth[key] = [];
+        }
+        sessionsByMonth[key].push(session);
+    });
+
+    const monthSessions = (sessionsByMonth[monthKey] || []).slice().reverse();
+
+    monthSessions.forEach(session => {
+        const date = formatDate(session.date);
+        const training = DB.getBodyPartById(session.training_id);
+        const trainingName = training ? training.name : 'Unknown training';
+
+        const div = document.createElement('div');
+        div.className = 'session-card';
+        div.style.cursor = 'pointer';
+
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.onclick = () => toggleSession(session.id);
+
+        header.innerHTML = `
+            <div style="display: flex; gap: 12px; align-items: center; flex: 1;">
+                <span id="arrow-${session.id}" style="font-size: 18px;">▶</span>
+                <div>
+                    <strong>${trainingName}</strong>
+                    <small style="margin-left: 12px; color: #999;">${date}</small>
+                </div>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteSession(${session.id})">×</button>
+        `;
+
+        div.appendChild(header);
+
+        const content = document.createElement('div');
+        content.id = `session-content-${session.id}`;
+        content.style.display = 'none';
+        content.style.marginTop = '12px';
+        content.style.paddingTop = '12px';
+        content.style.borderTop = '1px solid #ddd';
+
+        div.appendChild(content);
+        container.appendChild(div);
+
+        const exerciseDiv = document.getElementById(`session-content-${session.id}`);
+        if (session.exercises && session.exercises.length > 0) {
+            let html = '';
+            session.exercises.forEach((ex, exIdx) => {
+                const exercise = DB.getExerciseById(ex.exercise_id);
+                const exerciseName = exercise ? exercise.name : 'Unknown exercise';
+
+                html += `<div class="exercise-series">
+                    <small><strong>${exerciseName}</strong></small>
+                    <div id="series-${session.id}-${exIdx}">`;
+
+                if (ex.series && ex.series.length > 0) {
+                    ex.series.forEach((s, serieIdx) => {
+                        html += `<div class="serie-row">
+                            <small style="min-width: 35px;">Set ${serieIdx + 1}:</small>
+                            <div style="display: flex; gap: 2px; align-items: center;">
+                                <input type="number" class="form-control form-control-sm" style="width: 50px;" placeholder="0" value="${s.weight}" data-session="${session.id}" data-exercise="${exIdx}" data-serie="${serieIdx}" data-field="weight">
+                                <small style="min-width: 20px;">kg</small>
+                            </div>
+                            <div style="display: flex; gap: 2px; align-items: center;">
+                                <input type="number" class="form-control form-control-sm" style="width: 50px;" placeholder="0" value="${s.reps}" data-session="${session.id}" data-exercise="${exIdx}" data-serie="${serieIdx}" data-field="reps">
+                                <small style="min-width: 35px;">reps</small>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="deleteSerieFromSession(${session.id}, ${exIdx}, ${serieIdx})">×</button>
+                        </div>`;
+                    });
+                } else {
+                    html += `<small class="text-muted">No series</small>`;
+                }
+
+                html += `</div>
+                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="addSerieToSession(${session.id}, ${exIdx})">+ Add set</button>
+                </div>`;
+            });
+            html += `<button class="btn btn-sm btn-success mt-2" onclick="saveSessionChanges(${session.id})">Save</button>`;
+            exerciseDiv.innerHTML = html;
+        }
+    });
+}
+
+function saveSession() {
+    if (!currentTrainingId) {
+        alert('Please select a training first in the Trainings tab');
+        return;
+    }
+
+    const exercises = DB.getTrainingExercises(currentTrainingId);
+    if (exercises.length === 0) {
+        alert('The selected training has no exercises');
+        return;
+    }
+
+    try {
+        // Get last session of this training to copy weights
+        const allSessions = DB.getSessions();
+        const lastSession = allSessions
+            .filter(s => s.training_id === currentTrainingId)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+
+        const session = DB.addSession({
+            training_id: currentTrainingId,
+            exercises: exercises.map(ex => {
+                let series = [];
+
+                // If there's a previous session, copy all series
+                if (lastSession && lastSession.exercises) {
+                    const prevExercise = lastSession.exercises.find(e => e.exercise_id === ex.exercise.id);
+                    if (prevExercise && prevExercise.series && prevExercise.series.length > 0) {
+                        // Copy all series from previous session
+                        series = JSON.parse(JSON.stringify(prevExercise.series));
+                    }
+                }
+
+                return {
+                    exercise_id: ex.exercise.id,
+                    series: series
+                };
+            })
+        });
+
+        if (session) {
+            alert('Session saved successfully');
+            setTimeout(() => loadSessions(), 100);
+        } else {
+            alert('Error saving session');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+        console.error('Save session error:', error);
+    }
+}
+
+function addSerieToSession(sessionId, exerciseIdx) {
+    const sessions = DB.getSessions();
+    const session = sessions.find(s => s.id === sessionId);
+
+    if (!session || !session.exercises[exerciseIdx]) return;
+
+    if (!session.exercises[exerciseIdx].series) {
+        session.exercises[exerciseIdx].series = [];
+    }
+
+    // Add new serie with 0 weight and reps
+    session.exercises[exerciseIdx].series.push({ weight: 0, reps: 0 });
+    DB.updateSession(sessionId, session.exercises);
+
+    // Refresh only this session's display without collapsing
+    updateSessionDisplay(sessionId);
+}
+
+function deleteSerieFromSession(sessionId, exerciseIdx, serieIdx) {
+    if (!confirm('Delete this set?')) return;
+
+    const sessions = DB.getSessions();
+    const session = sessions.find(s => s.id === sessionId);
+
+    if (!session || !session.exercises[exerciseIdx]) return;
+
+    session.exercises[exerciseIdx].series.splice(serieIdx, 1);
+    DB.updateSession(sessionId, session.exercises);
+    updateSessionDisplay(sessionId);
+}
+
+function updateSessionDisplay(sessionId) {
+    const sessions = DB.getSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const exerciseDiv = document.getElementById(`session-content-${sessionId}`);
+    if (!exerciseDiv) return;
+
+    if (session.exercises && session.exercises.length > 0) {
+        let html = '';
+        session.exercises.forEach((ex, exIdx) => {
+            const exercise = DB.getExerciseById(ex.exercise_id);
+            const exerciseName = exercise ? exercise.name : 'Unknown exercise';
+
+            html += `<div class="exercise-series">
+                <small><strong>${exerciseName}</strong></small>
+                <div id="series-${sessionId}-${exIdx}">`;
+
+            if (ex.series && ex.series.length > 0) {
+                ex.series.forEach((s, serieIdx) => {
+                    html += `<div class="serie-row">
+                        <small style="min-width: 35px;">Set ${serieIdx + 1}:</small>
+                        <div style="display: flex; gap: 2px; align-items: center;">
+                            <input type="number" class="form-control form-control-sm" style="width: 50px;" placeholder="0" value="${s.weight}" data-session="${sessionId}" data-exercise="${exIdx}" data-serie="${serieIdx}" data-field="weight">
+                            <small style="min-width: 20px;">kg</small>
+                        </div>
+                        <div style="display: flex; gap: 2px; align-items: center;">
+                            <input type="number" class="form-control form-control-sm" style="width: 50px;" placeholder="0" value="${s.reps}" data-session="${sessionId}" data-exercise="${exIdx}" data-serie="${serieIdx}" data-field="reps">
+                            <small style="min-width: 35px;">reps</small>
+                        </div>
+                        <button class="btn btn-sm btn-danger" onclick="deleteSerieFromSession(${sessionId}, ${exIdx}, ${serieIdx})">×</button>
+                    </div>`;
+                });
+            } else {
+                html += `<small class="text-muted">No series</small>`;
+            }
+
+            html += `</div>
+                <button class="btn btn-sm btn-outline-primary mt-2" onclick="addSerieToSession(${sessionId}, ${exIdx})">+ Add set</button>
+            </div>`;
+        });
+        html += `<button class="btn btn-sm btn-success mt-2" onclick="saveSessionChanges(${sessionId})">Save</button>`;
+        exerciseDiv.innerHTML = html;
+    }
+}
+
+function toggleSession(sessionId) {
+    const content = document.getElementById(`session-content-${sessionId}`);
+    const arrow = document.getElementById(`arrow-${sessionId}`);
+
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.textContent = '▼';
+    } else {
+        content.style.display = 'none';
+        arrow.textContent = '▶';
+    }
+}
+
+function saveSessionChanges(sessionId) {
+    const sessions = DB.getSessions();
+    const session = sessions.find(s => s.id === sessionId);
+
+    if (!session) return;
+
+    const inputs = document.querySelectorAll(`input[data-session="${sessionId}"]`);
+    const updatedExercises = JSON.parse(JSON.stringify(session.exercises));
+
+    inputs.forEach(input => {
+        const exerciseIdx = parseInt(input.dataset.exercise);
+        const serieIdx = parseInt(input.dataset.serie);
+        const field = input.dataset.field;
+        const value = parseFloat(input.value) || 0;
+
+        if (updatedExercises[exerciseIdx] && updatedExercises[exerciseIdx].series[serieIdx]) {
+            updatedExercises[exerciseIdx].series[serieIdx][field] = value;
+        }
+    });
+
+    DB.updateSession(sessionId, updatedExercises);
+    alert('Session updated');
+    setTimeout(() => {
+        const currentMonth = window.currentSessionMonth;
+        loadSessions();
+        if (currentMonth) {
+            window.currentSessionMonth = currentMonth;
+            renderSessionsForMonth(currentMonth);
+        }
+    }, 100);
+}
+
+function deleteSession(sessionId) {
+    if (confirm('Delete this session?')) {
+        DB.deleteSession(sessionId);
+        setTimeout(() => {
+            const currentMonth = window.currentSessionMonth;
+            loadSessions();
+            if (currentMonth) {
+                window.currentSessionMonth = currentMonth;
+                renderSessionsForMonth(currentMonth);
+            }
+        }, 100);
+    }
 }
 
 function initializeDarkMode() {
