@@ -100,10 +100,10 @@ function loadTrainingExercises(trainingId) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><a href="#" style="text-decoration: none; color: inherit; cursor: pointer;" onclick="event.preventDefault(); showExerciseStats(${ex.exercise.id})">${ex.exercise.name}</a></td>
-            <td>${ex.muscle.name}</td>
+            <td>${ex.muscle ? ex.muscle.name : '—'}</td>
             <td>${ex.record_count}</td>
             <td>${ex.max_weight} kg</td>
-            <td><button class="btn btn-sm btn-danger" onclick="removeExerciseFromTraining(${trainingId}, ${ex.muscle.id}, ${ex.exercise.id})">Quitar</button></td>
+            <td><button class="btn btn-sm btn-danger" onclick="removeExerciseFromTraining(${trainingId}, ${ex.exercise.id})">Quitar</button></td>
         `;
         tbody.appendChild(tr);
     });
@@ -179,11 +179,9 @@ function showAddMuscleToTrainingModal() {
 function goToExerciseSelection(muscleId, muscleName) {
     window.selectedMuscleInTraining = { id: muscleId, name: muscleName };
 
-    DB.addMuscleToTraining(currentTrainingId, muscleId);
-
     const available = DB.getMuscleExercises(muscleId);
     const assigned = DB.getTrainingExercises(currentTrainingId);
-    const assignedIds = new Set(assigned.filter(r => r.muscle.id === muscleId).map(r => r.exercise.id));
+    const assignedIds = new Set(assigned.map(r => r.exercise.id));
 
     const exerciseSelect = document.getElementById('exerciseSelectTraining');
     exerciseSelect.innerHTML = '<option value="">Selecciona un ejercicio...</option>';
@@ -210,16 +208,16 @@ function goBackToMuscleSelection() {
 function addExerciseToTrainingConfirm() {
     const exerciseId = parseInt(document.getElementById('exerciseSelectTraining').value);
     if (!exerciseId) { alert('Please select an exercise'); return; }
-    if (!currentTrainingId || !window.selectedMuscleInTraining) { alert('Error: select a training and muscle first'); return; }
+    if (!currentTrainingId) { alert('Error: select a training first'); return; }
 
-    DB.addExerciseToTraining(currentTrainingId, window.selectedMuscleInTraining.id, exerciseId);
+    DB.addExerciseToTraining(currentTrainingId, exerciseId);
     closeAllModals();
     setTimeout(() => loadTrainingExercises(currentTrainingId), 100);
 }
 
-function removeExerciseFromTraining(trainingId, muscleId, exerciseId) {
+function removeExerciseFromTraining(trainingId, exerciseId) {
     if (confirm('Remove this exercise?')) {
-        DB.removeExerciseFromTraining(trainingId, muscleId, exerciseId);
+        DB.removeExerciseFromTraining(trainingId, exerciseId);
         setTimeout(() => loadTrainingExercises(trainingId), 100);
     }
 }
@@ -383,11 +381,9 @@ function showExerciseStats(exerciseId) {
         }
     });
 
-    // Reverse for display (newest first)
-    filtered.reverse();
-
+    // History (newest first) — uses the exact same filtered points as the chart
     const historialHtml = filtered.length > 0
-        ? filtered.map(d => {
+        ? [...filtered].reverse().map(d => {
             const seriesStr = d.series.map(v => Math.round(v)).join(' + ');
             return `
                 <div class="record-row">
@@ -403,9 +399,9 @@ function showExerciseStats(exerciseId) {
     document.getElementById('statsHistorial').innerHTML = historialHtml;
 
     const canvas = document.getElementById('statsChart');
-    if (records.length > 0) {
+    if (filtered.length > 0) {
         canvas.style.display = 'block';
-        drawStatsChart(records);
+        drawStatsChart(filtered);
     } else {
         canvas.style.display = 'none';
     }
@@ -416,36 +412,13 @@ function showExerciseStats(exerciseId) {
 
 
 
-function drawStatsChart(records) {
-    const sorted = [...records].sort((a, b) => new Date(a.date) - new Date(b.date));
+// Receives the already-filtered points (oldest first) shared with the History,
+// so every chart point matches exactly one History entry.
+function drawStatsChart(points) {
     const ctx = document.getElementById('statsChart');
     if (!ctx) return;
 
     if (window.statsChartInstance) window.statsChartInstance.destroy();
-
-    // Group by date and sum volume for each day
-    const volumeByDate = {};
-    sorted.forEach(r => {
-        const dateKey = formatDate(r.date);
-        if (!volumeByDate[dateKey]) {
-            volumeByDate[dateKey] = { date: r.date, volume: 0 };
-        }
-        volumeByDate[dateKey].volume += r.weight * r.reps * r.sets;
-    });
-
-    // Convert to array and sort
-    const byDate = Object.values(volumeByDate).sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    // Filter to show only when total volume changed
-    const filtered = [];
-    let lastVolume = null;
-
-    byDate.forEach(d => {
-        if (lastVolume === null || d.volume !== lastVolume) {
-            filtered.push(d);
-            lastVolume = d.volume;
-        }
-    });
 
     const isMobile = window.innerWidth < 768;
     const pointRadius = isMobile ? 3 : 5;
@@ -454,26 +427,57 @@ function drawStatsChart(records) {
     window.statsChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: filtered.map(d => formatDate(d.date)),
-            datasets: [{
-                label: 'Volumen Total (kg)',
-                data: filtered.map(d => Math.round(d.volume)),
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                tension: 0.3,
-                fill: true,
-                pointBackgroundColor: '#0d6efd',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius,
-                pointHoverRadius
-            }]
+            labels: points.map(d => formatDate(d.date)),
+            datasets: [
+                {
+                    label: 'Volumen Total (kg)',
+                    data: points.map(d => Math.round(d.volume)),
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius,
+                    pointHoverRadius,
+                    yAxisID: 'yVolume'
+                },
+                {
+                    label: 'Max Weight (kg)',
+                    data: points.map(d => d.maxWeight),
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    pointBackgroundColor: '#dc3545',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius,
+                    pointHoverRadius,
+                    yAxisID: 'yWeight'
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: !isMobile, position: 'top' } },
-            scales: { y: { beginAtZero: false } }
+            plugins: { legend: { display: true, position: 'top' } },
+            scales: {
+                yVolume: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: false,
+                    title: { display: !isMobile, text: 'Volumen (kg)' }
+                },
+                yWeight: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: false,
+                    grid: { drawOnChartArea: false },
+                    title: { display: !isMobile, text: 'Max Weight (kg)' }
+                }
+            }
         }
     });
 }
@@ -598,7 +602,10 @@ function loadSessions() {
     });
 
     const months = Object.keys(sessionsByMonth).sort().reverse();
-    const currentMonthIndex = window.currentSessionMonthIndex !== undefined ? window.currentSessionMonthIndex : 0;
+    let currentMonthIndex = window.currentSessionMonthIndex !== undefined ? window.currentSessionMonthIndex : 0;
+    // Clamp index in case sessions were deleted and the month no longer exists
+    if (currentMonthIndex > months.length - 1) currentMonthIndex = months.length - 1;
+    if (currentMonthIndex < 0) currentMonthIndex = 0;
     const currentMonth = months[currentMonthIndex];
     window.currentSessionMonthIndex = currentMonthIndex;
 
@@ -621,7 +628,7 @@ function loadSessions() {
     renderSessionsForMonth(currentMonth);
 }
 
-function nextSessionMonth() {
+function getSessionMonths() {
     const sessions = DB.getSessions();
     const sessionsByMonth = {};
     sessions.forEach(session => {
@@ -630,8 +637,10 @@ function nextSessionMonth() {
         if (!sessionsByMonth[key]) sessionsByMonth[key] = [];
         sessionsByMonth[key].push(session);
     });
+    return Object.keys(sessionsByMonth).sort().reverse();
+}
 
-    const months = Object.keys(sessionsByMonth).sort().reverse();
+function nextSessionMonth() {
     const currentIndex = window.currentSessionMonthIndex || 0;
     if (currentIndex > 0) {
         window.currentSessionMonthIndex = currentIndex - 1;
@@ -640,16 +649,7 @@ function nextSessionMonth() {
 }
 
 function previousSessionMonth() {
-    const sessions = DB.getSessions();
-    const sessionsByMonth = {};
-    sessions.forEach(session => {
-        const date = new Date(session.date);
-        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (!sessionsByMonth[key]) sessionsByMonth[key] = [];
-        sessionsByMonth[key].push(session);
-    });
-
-    const months = Object.keys(sessionsByMonth).sort().reverse();
+    const months = getSessionMonths();
     const currentIndex = window.currentSessionMonthIndex || 0;
     if (currentIndex < months.length - 1) {
         window.currentSessionMonthIndex = currentIndex + 1;
@@ -804,19 +804,42 @@ function saveSession() {
     }
 }
 
-function addSerieToSession(sessionId, exerciseIdx) {
+// Reads the current values typed in the session's inputs (which may be unsaved)
+// and returns the exercises array with those values applied. This prevents
+// losing edits when adding/removing a set before pressing Save.
+function readSessionExercisesFromDOM(sessionId) {
     const sessions = DB.getSessions();
     const session = sessions.find(s => s.id === sessionId);
+    if (!session) return null;
 
-    if (!session || !session.exercises[exerciseIdx]) return;
+    const updatedExercises = JSON.parse(JSON.stringify(session.exercises));
+    const inputs = document.querySelectorAll(`input[data-session="${sessionId}"]`);
 
-    if (!session.exercises[exerciseIdx].series) {
-        session.exercises[exerciseIdx].series = [];
+    inputs.forEach(input => {
+        const exerciseIdx = parseInt(input.dataset.exercise);
+        const serieIdx = parseInt(input.dataset.serie);
+        const field = input.dataset.field;
+        const value = parseFloat(input.value) || 0;
+
+        if (updatedExercises[exerciseIdx] && updatedExercises[exerciseIdx].series[serieIdx]) {
+            updatedExercises[exerciseIdx].series[serieIdx][field] = value;
+        }
+    });
+
+    return updatedExercises;
+}
+
+function addSerieToSession(sessionId, exerciseIdx) {
+    const exercises = readSessionExercisesFromDOM(sessionId);
+    if (!exercises || !exercises[exerciseIdx]) return;
+
+    if (!exercises[exerciseIdx].series) {
+        exercises[exerciseIdx].series = [];
     }
 
     // Add new serie with 0 weight and reps
-    session.exercises[exerciseIdx].series.push({ weight: 0, reps: 0 });
-    DB.updateSession(sessionId, session.exercises);
+    exercises[exerciseIdx].series.push({ weight: 0, reps: 0 });
+    DB.updateSession(sessionId, exercises);
 
     // Refresh only this session's display without collapsing
     updateSessionDisplay(sessionId);
@@ -825,13 +848,11 @@ function addSerieToSession(sessionId, exerciseIdx) {
 function deleteSerieFromSession(sessionId, exerciseIdx, serieIdx) {
     if (!confirm('Delete this set?')) return;
 
-    const sessions = DB.getSessions();
-    const session = sessions.find(s => s.id === sessionId);
+    const exercises = readSessionExercisesFromDOM(sessionId);
+    if (!exercises || !exercises[exerciseIdx]) return;
 
-    if (!session || !session.exercises[exerciseIdx]) return;
-
-    session.exercises[exerciseIdx].series.splice(serieIdx, 1);
-    DB.updateSession(sessionId, session.exercises);
+    exercises[exerciseIdx].series.splice(serieIdx, 1);
+    DB.updateSession(sessionId, exercises);
     updateSessionDisplay(sessionId);
 }
 
@@ -895,48 +916,18 @@ function toggleSession(sessionId) {
 }
 
 function saveSessionChanges(sessionId) {
-    const sessions = DB.getSessions();
-    const session = sessions.find(s => s.id === sessionId);
-
-    if (!session) return;
-
-    const inputs = document.querySelectorAll(`input[data-session="${sessionId}"]`);
-    const updatedExercises = JSON.parse(JSON.stringify(session.exercises));
-
-    inputs.forEach(input => {
-        const exerciseIdx = parseInt(input.dataset.exercise);
-        const serieIdx = parseInt(input.dataset.serie);
-        const field = input.dataset.field;
-        const value = parseFloat(input.value) || 0;
-
-        if (updatedExercises[exerciseIdx] && updatedExercises[exerciseIdx].series[serieIdx]) {
-            updatedExercises[exerciseIdx].series[serieIdx][field] = value;
-        }
-    });
+    const updatedExercises = readSessionExercisesFromDOM(sessionId);
+    if (!updatedExercises) return;
 
     DB.updateSession(sessionId, updatedExercises);
     alert('Session updated');
-    setTimeout(() => {
-        const currentMonth = window.currentSessionMonth;
-        loadSessions();
-        if (currentMonth) {
-            window.currentSessionMonth = currentMonth;
-            renderSessionsForMonth(currentMonth);
-        }
-    }, 100);
+    setTimeout(() => loadSessions(), 100);
 }
 
 function deleteSession(sessionId) {
     if (confirm('Delete this session?')) {
         DB.deleteSession(sessionId);
-        setTimeout(() => {
-            const currentMonth = window.currentSessionMonth;
-            loadSessions();
-            if (currentMonth) {
-                window.currentSessionMonth = currentMonth;
-                renderSessionsForMonth(currentMonth);
-            }
-        }, 100);
+        setTimeout(() => loadSessions(), 100);
     }
 }
 

@@ -1,8 +1,9 @@
-const CACHE = 'gym-v1';
+const CACHE = 'gym-v2';
 const ASSETS = [
     'index.html',
     'manifest.json',
     'static/css/style.css',
+    'static/icon.svg',
     'static/js/db.js',
     'static/js/app.js',
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',

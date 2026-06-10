@@ -1,15 +1,7 @@
 const DB = (() => {
     const KEY = 'gym_data';
 
-    function load() {
-        const raw = localStorage.getItem(KEY);
-        if (raw) {
-            const data = JSON.parse(raw);
-            if (!data.sessions) data.sessions = [];
-            if (!data.next_ids) data.next_ids = {};
-            if (!data.next_ids.sessions) data.next_ids.sessions = 1;
-            return data;
-        }
+    function emptyData() {
         return {
             body_parts: [],
             muscles: [],
@@ -19,6 +11,24 @@ const DB = (() => {
             muscle_exercises: [],
             next_ids: { body_parts: 1, muscles: 1, exercises: 1, sessions: 1 }
         };
+    }
+
+    function load() {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return emptyData();
+
+        const data = JSON.parse(raw);
+        const defaults = emptyData();
+        // Ensure every expected array exists so an imported/partial file
+        // never crashes a .filter()/.forEach() call downstream.
+        ['body_parts', 'muscles', 'exercises', 'sessions', 'training_exercises', 'muscle_exercises'].forEach(key => {
+            if (!Array.isArray(data[key])) data[key] = [];
+        });
+        if (!data.next_ids) data.next_ids = {};
+        Object.keys(defaults.next_ids).forEach(key => {
+            if (!data.next_ids[key]) data.next_ids[key] = 1;
+        });
+        return data;
     }
 
     function save(data) {
@@ -56,7 +66,6 @@ const DB = (() => {
     function deleteBodyPart(id) {
         const data = load();
         data.body_parts = data.body_parts.filter(bp => bp.id !== id);
-        data.training_muscles = data.training_muscles.filter(tm => tm.training_id !== id);
         data.training_exercises = data.training_exercises.filter(te => te.training_id !== id);
         save(data);
     }
@@ -95,36 +104,20 @@ const DB = (() => {
         return rows;
     }
 
-    function addMuscleToTraining(trainingId, muscleId) {
-        const data = load();
-        const exists = data.training_muscles.find(tm => tm.training_id === trainingId && tm.muscle_id === muscleId);
-        if (!exists) {
-            data.training_muscles.push({ training_id: trainingId, muscle_id: muscleId });
-            save(data);
-        }
-    }
-
-    function removeMuscleFromTraining(trainingId, muscleId) {
-        const data = load();
-        data.training_muscles = data.training_muscles.filter(tm => !(tm.training_id === trainingId && tm.muscle_id === muscleId));
-        data.training_exercises = data.training_exercises.filter(te => !(te.training_id === trainingId && te.muscle_id === muscleId));
-        save(data);
-    }
-
-    function addExerciseToTraining(trainingId, muscleId, exerciseId) {
+    function addExerciseToTraining(trainingId, exerciseId) {
         const data = load();
         const exists = data.training_exercises.find(te =>
-            te.training_id === trainingId && te.muscle_id === muscleId && te.exercise_id === exerciseId);
+            te.training_id === trainingId && te.exercise_id === exerciseId);
         if (!exists) {
-            data.training_exercises.push({ training_id: trainingId, muscle_id: muscleId, exercise_id: exerciseId });
+            data.training_exercises.push({ training_id: trainingId, exercise_id: exerciseId });
             save(data);
         }
     }
 
-    function removeExerciseFromTraining(trainingId, muscleId, exerciseId) {
+    function removeExerciseFromTraining(trainingId, exerciseId) {
         const data = load();
         data.training_exercises = data.training_exercises.filter(te =>
-            !(te.training_id === trainingId && te.muscle_id === muscleId && te.exercise_id === exerciseId));
+            !(te.training_id === trainingId && te.exercise_id === exerciseId));
         save(data);
     }
 
@@ -211,38 +204,16 @@ const DB = (() => {
     function deleteExercise(id) {
         const data = load();
         data.exercises = data.exercises.filter(e => e.id !== id);
-        data.records = data.records.filter(r => r.exercise_id !== id);
         data.muscle_exercises = data.muscle_exercises.filter(me => me.exercise_id !== id);
         data.training_exercises = data.training_exercises.filter(te => te.exercise_id !== id);
-        save(data);
-    }
-
-    // ---- Records ----
-
-    function getRecords(exerciseId) {
-        const data = load();
-        return data.records.filter(r => r.exercise_id === exerciseId).sort((a, b) => new Date(a.date) - new Date(b.date));
-    }
-
-    function addRecord({ exercise_id, weight, reps, sets, notes }) {
-        const data = load();
-        const record = {
-            id: nextId(data, 'records'),
-            exercise_id,
-            weight,
-            reps,
-            sets,
-            date: new Date().toISOString(),
-            notes: notes || ''
-        };
-        data.records.push(record);
-        save(data);
-        return record;
-    }
-
-    function deleteRecord(id) {
-        const data = load();
-        data.records = data.records.filter(r => r.id !== id);
+        // Remove exercise from any sessions
+        if (data.sessions) {
+            data.sessions.forEach(session => {
+                if (session.exercises) {
+                    session.exercises = session.exercises.filter(ex => ex.exercise_id !== id);
+                }
+            });
+        }
         save(data);
     }
 
@@ -269,13 +240,7 @@ const DB = (() => {
             id: nextId(data, 'sessions'),
             training_id,
             date: new Date().toISOString(),
-            exercises: (exercises || []).map((ex, idx) => ({
-                ...ex,
-                series: (ex.series || []).map((s, serieIdx) => ({
-                    id: serieIdx + 1,
-                    ...s
-                }))
-            }))
+            exercises: exercises || []
         };
         data.sessions.push(session);
         save(data);
@@ -286,15 +251,7 @@ const DB = (() => {
         const data = load();
         const session = data.sessions.find(s => s.id === id);
         if (session) {
-            session.exercises = (exercises || []).map((ex, idx) => ({
-                ...ex,
-                series: (ex.series || []).map((s, serieIdx) => {
-                    if (!s.id) {
-                        return { id: serieIdx + 1, ...s };
-                    }
-                    return s;
-                })
-            }));
+            session.exercises = exercises || [];
             save(data);
         }
         return session;
@@ -318,11 +275,9 @@ const DB = (() => {
 
     return {
         getBodyParts, createBodyPart, updateBodyPart, deleteBodyPart,
-        getTrainingExercises, addMuscleToTraining, removeMuscleFromTraining,
-        addExerciseToTraining, removeExerciseFromTraining,
+        getTrainingExercises, addExerciseToTraining, removeExerciseFromTraining,
         getMuscles, createMuscle, getMuscleExercises, addExerciseToMuscle,
         getExercises, createExercise, deleteExercise,
-        getRecords, addRecord, deleteRecord,
         getSessions, addSession, updateSession, deleteSession,
         getBodyPartById, getExerciseById,
         clearAll
